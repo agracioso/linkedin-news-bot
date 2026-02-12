@@ -5,8 +5,10 @@ profissionais para LinkedIn usando a API da Anthropic (Claude).
 """
 
 import os
+import requests
 from datetime import datetime
-from gnews import GNews
+from bs4 import BeautifulSoup
+from urllib.parse import quote
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
@@ -23,60 +25,75 @@ if not ANTHROPIC_API_KEY:
 
 def buscar_noticias(topico, dias=7, max_noticias=5):
     """
-    Busca notícias recentes sobre um tópico usando Google News.
+    Busca notícias recentes sobre um tópico usando Google News RSS.
 
     Args:
         topico (str): Tópico para buscar notícias
-        dias (int): Número de dias atrás para buscar (padrão: 7)
+        dias (int): Número de dias atrás para buscar (padrão: 7) - Nota: RSS não filtra por data
         max_noticias (int): Número máximo de notícias para retornar (padrão: 5)
 
     Returns:
         list: Lista com as notícias encontradas (título, descrição, url, data)
     """
-    print(f"🔍 Buscando notícias sobre '{topico}' no Google News (últimos {dias} dias)...")
+    print(f"🔍 Buscando notícias sobre '{topico}' no Google News...")
 
     try:
-        # Configurar GNews para buscar em português brasileiro
-        google_news = GNews(
-            language='pt',       # Idioma português
-            country='BR',        # País Brasil
-            period=f'{dias}d',   # Período em dias
-            max_results=max_noticias  # Máximo de resultados
-        )
+        # Codificar o tópico para URL
+        topico_encoded = quote(topico)
 
-        # Buscar notícias sobre o tópico
-        resultados = google_news.get_news(topico)
+        # URL do RSS do Google News em português do Brasil
+        rss_url = f"https://news.google.com/rss/search?q={topico_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
 
-        # Verificar se encontrou notícias
-        if not resultados:
+        # Headers para simular um navegador
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
+        # Fazer requisição ao RSS
+        response = requests.get(rss_url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        # Parse do XML com BeautifulSoup
+        soup = BeautifulSoup(response.content, 'xml')
+
+        # Encontrar todos os itens de notícia
+        items = soup.find_all('item', limit=max_noticias)
+
+        if not items:
             print(f"❌ Nenhuma notícia encontrada sobre '{topico}'")
             return []
 
-        # Extrair e formatar informações relevantes
+        # Extrair informações de cada notícia
         noticias = []
-        for artigo in resultados:
-            # Tentar obter o artigo completo para ter mais informações
-            try:
-                artigo_completo = google_news.get_full_article(artigo['url'])
-                descricao = artigo_completo.text[:300] if artigo_completo and artigo_completo.text else artigo.get('description', 'Sem descrição')
-            except:
-                # Se falhar, usar apenas a descrição básica
-                descricao = artigo.get('description', 'Sem descrição')
+        for item in items:
+            titulo = item.title.text if item.title else 'Sem título'
+            link = item.link.text if item.link else ''
+            descricao = item.description.text if item.description else 'Sem descrição'
+            pub_date = item.pubDate.text if item.pubDate else ''
+
+            # Extrair fonte da descrição (Google News inclui fonte no início)
+            fonte = 'Google News'
+            if ' - ' in titulo:
+                # Muitas vezes a fonte vem no título
+                fonte = titulo.split(' - ')[-1]
 
             noticia = {
-                'titulo': artigo.get('title', 'Sem título'),
-                'descricao': descricao,
-                'url': artigo.get('url', ''),
-                'fonte': artigo.get('publisher', {}).get('title', 'Fonte desconhecida') if isinstance(artigo.get('publisher'), dict) else str(artigo.get('publisher', 'Fonte desconhecida')),
-                'data': artigo.get('published date', '')
+                'titulo': titulo,
+                'descricao': descricao[:300],  # Limitar descrição
+                'url': link,
+                'fonte': fonte,
+                'data': pub_date
             }
             noticias.append(noticia)
 
         print(f"✅ Encontradas {len(noticias)} notícias relevantes")
         return noticias
 
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         print(f"❌ Erro ao buscar notícias no Google News: {e}")
+        return []
+    except Exception as e:
+        print(f"❌ Erro inesperado ao processar notícias: {e}")
         return []
 
 
