@@ -1,87 +1,82 @@
 """
 LinkedIn News Bot - MVP
-Bot Python que busca notícias sobre um tópico e gera posts profissionais para LinkedIn
-usando a API da Anthropic (Claude).
+Bot Python que busca notícias sobre um tópico usando Google News e gera posts
+profissionais para LinkedIn usando a API da Anthropic (Claude).
 """
 
 import os
-import requests
-from datetime import datetime, timedelta
+from datetime import datetime
+from gnews import GNews
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Configurações das APIs
-NEWSAPI_KEY = os.getenv('NEWSAPI_KEY')
+# Configurações
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 
-# Validar que as API keys estão configuradas
-if not NEWSAPI_KEY:
-    raise ValueError("NEWSAPI_KEY não encontrada. Configure o arquivo .env")
+# Validar que a API key está configurada
 if not ANTHROPIC_API_KEY:
     raise ValueError("ANTHROPIC_API_KEY não encontrada. Configure o arquivo .env")
 
 
-def buscar_noticias(topico, dias=7):
+def buscar_noticias(topico, dias=7, max_noticias=5):
     """
-    Busca notícias recentes sobre um tópico usando a NewsAPI.
+    Busca notícias recentes sobre um tópico usando Google News.
 
     Args:
         topico (str): Tópico para buscar notícias
         dias (int): Número de dias atrás para buscar (padrão: 7)
+        max_noticias (int): Número máximo de notícias para retornar (padrão: 5)
 
     Returns:
         list: Lista com as notícias encontradas (título, descrição, url, data)
     """
-    print(f"🔍 Buscando notícias sobre '{topico}' dos últimos {dias} dias...")
-
-    # Calcular data de início (dias atrás)
-    data_inicio = (datetime.now() - timedelta(days=dias)).strftime('%Y-%m-%d')
-
-    # Endpoint da NewsAPI
-    url = 'https://newsapi.org/v2/everything'
-
-    # Parâmetros da requisição
-    params = {
-        'q': topico,
-        'from': data_inicio,
-        'sortBy': 'relevancy',
-        'language': 'pt',  # Priorizar notícias em português
-        'pageSize': 5,     # Buscar top 5 notícias mais relevantes
-        'apiKey': NEWSAPI_KEY
-    }
+    print(f"🔍 Buscando notícias sobre '{topico}' no Google News (últimos {dias} dias)...")
 
     try:
-        # Fazer requisição à API
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
+        # Configurar GNews para buscar em português brasileiro
+        google_news = GNews(
+            language='pt',       # Idioma português
+            country='BR',        # País Brasil
+            period=f'{dias}d',   # Período em dias
+            max_results=max_noticias  # Máximo de resultados
+        )
 
-        dados = response.json()
+        # Buscar notícias sobre o tópico
+        resultados = google_news.get_news(topico)
 
         # Verificar se encontrou notícias
-        if dados['status'] != 'ok' or dados['totalResults'] == 0:
+        if not resultados:
             print(f"❌ Nenhuma notícia encontrada sobre '{topico}'")
             return []
 
-        # Extrair informações relevantes das notícias
+        # Extrair e formatar informações relevantes
         noticias = []
-        for artigo in dados['articles']:
+        for artigo in resultados:
+            # Tentar obter o artigo completo para ter mais informações
+            try:
+                artigo_completo = google_news.get_full_article(artigo['url'])
+                descricao = artigo_completo.text[:300] if artigo_completo and artigo_completo.text else artigo.get('description', 'Sem descrição')
+            except:
+                # Se falhar, usar apenas a descrição básica
+                descricao = artigo.get('description', 'Sem descrição')
+
             noticia = {
                 'titulo': artigo.get('title', 'Sem título'),
-                'descricao': artigo.get('description', 'Sem descrição'),
+                'descricao': descricao,
                 'url': artigo.get('url', ''),
-                'fonte': artigo.get('source', {}).get('name', 'Fonte desconhecida'),
-                'data': artigo.get('publishedAt', '')
+                'fonte': artigo.get('publisher', {}).get('title', 'Fonte desconhecida') if isinstance(artigo.get('publisher'), dict) else str(artigo.get('publisher', 'Fonte desconhecida')),
+                'data': artigo.get('published date', '')
             }
             noticias.append(noticia)
 
         print(f"✅ Encontradas {len(noticias)} notícias relevantes")
         return noticias
 
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Erro ao buscar notícias: {e}")
+    except Exception as e:
+        print(f"❌ Erro ao buscar notícias no Google News: {e}")
         return []
 
 

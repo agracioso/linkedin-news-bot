@@ -6,23 +6,17 @@ Bot Python que busca notícias recentes sobre um tópico e gera posts profission
 
 Este bot automatiza o processo de criação de conteúdo para LinkedIn:
 
-1. **Busca notícias** - Utiliza a NewsAPI para encontrar as notícias mais relevantes e recentes sobre um tópico específico
-2. **Analisa conteúdo** - Envia as notícias para a API da Anthropic (Claude AI)
-3. **Gera post profissional** - Claude cria um post de 200-300 palavras com:
+1. **Pergunta o assunto** - Script interativo que solicita o tópico de interesse
+2. **Busca notícias** - Utiliza o Google News para encontrar as notícias mais relevantes e recentes sobre o tópico
+3. **Analisa conteúdo** - Envia as notícias para a API da Anthropic (Claude AI)
+4. **Gera post profissional** - Claude cria um post de 200-300 palavras com:
    - Tom acadêmico mas acessível
    - Insights e análise (não apenas resumo)
    - Conexões entre diferentes notícias
    - Reflexão final para gerar engajamento
-4. **Salva automaticamente** - O post é exibido no terminal e salvo em arquivo .txt com timestamp
+5. **Salva automaticamente** - O post é exibido no terminal e salvo em arquivo .txt com timestamp
 
-## 🔑 Obtendo as API Keys
-
-### NewsAPI Key
-
-1. Acesse [https://newsapi.org/register](https://newsapi.org/register)
-2. Crie uma conta gratuita
-3. Copie sua API key do dashboard
-4. O plano gratuito permite 100 requisições por dia
+## 🔑 Obtendo a API Key
 
 ### Anthropic API Key (Claude)
 
@@ -32,7 +26,11 @@ Este bot automatiza o processo de criação de conteúdo para LinkedIn:
 4. Crie uma nova API key
 5. Copie a key (ela começa com `sk-ant-api03-...`)
 
-⚠️ **Importante**: Mantenha suas API keys em segredo! Nunca as compartilhe ou faça commit delas no Git.
+⚠️ **Importante**: Mantenha sua API key em segredo! Nunca a compartilhe ou faça commit dela no Git.
+
+### Por que não preciso de API key do Google News?
+
+Este bot usa a biblioteca **GNews** que faz scraping público do Google News, não requerendo API key ou cadastro. É totalmente gratuito e sem limites de requisições (dentro do uso razoável).
 
 ## ⚙️ Configuração
 
@@ -43,20 +41,19 @@ git clone <url-do-repositorio>
 cd linkedin-news-bot
 ```
 
-### 2. Configure as variáveis de ambiente
+### 2. Configure a variável de ambiente
 
 ```bash
 # Copie o arquivo de exemplo
 cp .env.example .env
 
-# Edite o arquivo .env e adicione suas API keys
+# Edite o arquivo .env e adicione sua API key
 nano .env  # ou use seu editor preferido
 ```
 
 O arquivo `.env` deve ficar assim:
 
 ```
-NEWSAPI_KEY=sua_chave_newsapi_aqui
 ANTHROPIC_API_KEY=sk-ant-api03-sua_chave_anthropic_aqui
 ```
 
@@ -87,11 +84,12 @@ Digite o tópico para buscar notícias: inteligência artificial
 
 ### Fluxo de execução
 
-1. Bot busca notícias dos últimos 7 dias sobre o tópico
-2. Encontra as 3-5 notícias mais relevantes
-3. Envia para Claude AI gerar o post
-4. Exibe o post no terminal
-5. Salva automaticamente em `posts/post_TOPICO_YYYYMMDD_HHMMSS.txt`
+1. Script pergunta qual o assunto desejado
+2. Bot busca notícias dos últimos 7 dias no Google News sobre o tópico
+3. Encontra as 5 notícias mais relevantes
+4. Envia para Claude AI gerar o post
+5. Exibe o post no terminal
+6. Salva automaticamente em `posts/post_TOPICO_YYYYMMDD_HHMMSS.txt`
 
 ## 📝 Exemplo de uso
 
@@ -107,7 +105,7 @@ Digite o tópico para buscar notícias: computação quântica
 LinkedIn News Bot - Gerando post sobre: computação quântica
 ================================================================================
 
-🔍 Buscando notícias sobre 'computação quântica' dos últimos 7 dias...
+🔍 Buscando notícias sobre 'computação quântica' no Google News (últimos 7 dias)...
 ✅ Encontradas 5 notícias relevantes
 ✍️  Gerando post LinkedIn sobre 'computação quântica' com Claude AI...
 ✅ Post gerado com sucesso!
@@ -144,17 +142,18 @@ linkedin-news-bot/
 
 - **Python**: 3.9 ou superior
 - **Bibliotecas**:
-  - `requests`: Para chamadas HTTP à NewsAPI
+  - `gnews`: Para buscar notícias do Google News (sem necessidade de API key)
   - `anthropic`: SDK oficial da Anthropic para Claude AI
   - `python-dotenv`: Gerenciamento de variáveis de ambiente
 
 ## 🔍 Funcionalidades principais
 
-### `buscar_noticias(topico, dias=7)`
-- Busca notícias recentes na NewsAPI
-- Filtra por relevância
-- Prioriza notícias em português
-- Retorna top 5 notícias
+### `buscar_noticias(topico, dias=7, max_noticias=5)`
+- Busca notícias recentes no Google News
+- Configura para idioma português e país Brasil
+- Filtra por período (últimos 7 dias por padrão)
+- Retorna até 5 notícias mais relevantes
+- Não requer API key ou autenticação
 
 ### `gerar_post_linkedin(topico, noticias)`
 - Formata contexto com as notícias
@@ -174,10 +173,11 @@ linkedin-news-bot/
 ## ⚡ Tratamento de erros
 
 O bot possui tratamento de erros para:
-- API keys não configuradas
-- Falhas na conexão com APIs
-- Nenhuma notícia encontrada
-- Erros ao gerar ou salvar posts
+- API key não configurada
+- Falhas ao buscar notícias no Google News
+- Nenhuma notícia encontrada sobre o tópico
+- Erros ao gerar posts com Claude AI
+- Erros ao salvar posts em arquivo
 
 ## 🚧 Limitações do MVP
 
@@ -202,11 +202,11 @@ Este é um projeto MVP. Sugestões e melhorias são bem-vindas!
 ## 📞 Suporte
 
 Em caso de problemas:
-1. Verifique se as API keys estão corretas no arquivo `.env`
-2. Confirme que instalou todas as dependências
+1. Verifique se a API key da Anthropic está correta no arquivo `.env`
+2. Confirme que instalou todas as dependências: `pip install -r requirements.txt`
 3. Verifique sua conexão com a internet
-4. Consulte a documentação das APIs:
-   - [NewsAPI Docs](https://newsapi.org/docs)
+4. Consulte a documentação:
+   - [GNews GitHub](https://github.com/ranahaani/GNews)
    - [Anthropic API Docs](https://docs.anthropic.com)
 
 ---
