@@ -1,2 +1,214 @@
-# linkedin-news-bot
-Bot Python que busca notícias e gera posts LinkedIn
+# LinkedIn News Bot - MVP
+
+Bot Python que busca notícias recentes sobre um tópico e gera posts profissionais para LinkedIn usando inteligência artificial.
+
+## 📋 O que o projeto faz
+
+Este bot automatiza o processo de criação de conteúdo para LinkedIn:
+
+1. **Busca notícias** - Utiliza a NewsAPI para encontrar as notícias mais relevantes e recentes sobre um tópico específico
+2. **Analisa conteúdo** - Envia as notícias para a API da Anthropic (Claude AI)
+3. **Gera post profissional** - Claude cria um post de 200-300 palavras com:
+   - Tom acadêmico mas acessível
+   - Insights e análise (não apenas resumo)
+   - Conexões entre diferentes notícias
+   - Reflexão final para gerar engajamento
+4. **Salva automaticamente** - O post é exibido no terminal e salvo em arquivo .txt com timestamp
+
+## 🔑 Obtendo as API Keys
+
+### NewsAPI Key
+
+1. Acesse [https://newsapi.org/register](https://newsapi.org/register)
+2. Crie uma conta gratuita
+3. Copie sua API key do dashboard
+4. O plano gratuito permite 100 requisições por dia
+
+### Anthropic API Key (Claude)
+
+1. Acesse [https://console.anthropic.com](https://console.anthropic.com)
+2. Faça login ou crie uma conta
+3. Navegue até "API Keys"
+4. Crie uma nova API key
+5. Copie a key (ela começa com `sk-ant-api03-...`)
+
+⚠️ **Importante**: Mantenha suas API keys em segredo! Nunca as compartilhe ou faça commit delas no Git.
+
+## ⚙️ Configuração
+
+### 1. Clone o repositório
+
+```bash
+git clone <url-do-repositorio>
+cd linkedin-news-bot
+```
+
+### 2. Configure as variáveis de ambiente
+
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite o arquivo .env e adicione suas API keys
+nano .env  # ou use seu editor preferido
+```
+
+O arquivo `.env` deve ficar assim:
+
+```
+NEWSAPI_KEY=sua_chave_newsapi_aqui
+ANTHROPIC_API_KEY=sk-ant-api03-sua_chave_anthropic_aqui
+```
+
+### 3. Instale as dependências
+
+```bash
+# Recomendado: criar um ambiente virtual
+python -m venv venv
+source venv/bin/activate  # No Windows: venv\Scripts\activate
+
+# Instalar dependências
+pip install -r requirements.txt
+```
+
+## 🚀 Como executar
+
+### Execução básica
+
+```bash
+python main.py
+```
+
+O script solicitará que você digite um tópico:
+
+```
+Digite o tópico para buscar notícias: inteligência artificial
+```
+
+### Fluxo de execução
+
+1. Bot busca notícias dos últimos 7 dias sobre o tópico
+2. Encontra as 3-5 notícias mais relevantes
+3. Envia para Claude AI gerar o post
+4. Exibe o post no terminal
+5. Salva automaticamente em `posts/post_TOPICO_YYYYMMDD_HHMMSS.txt`
+
+## 📝 Exemplo de uso
+
+```bash
+$ python main.py
+
+🤖 LinkedIn News Bot - MVP
+Bot que gera posts LinkedIn baseados em notícias recentes
+
+Digite o tópico para buscar notícias: computação quântica
+
+================================================================================
+LinkedIn News Bot - Gerando post sobre: computação quântica
+================================================================================
+
+🔍 Buscando notícias sobre 'computação quântica' dos últimos 7 dias...
+✅ Encontradas 5 notícias relevantes
+✍️  Gerando post LinkedIn sobre 'computação quântica' com Claude AI...
+✅ Post gerado com sucesso!
+
+================================================================================
+📝 POST GERADO:
+================================================================================
+
+[Post gerado aparece aqui...]
+
+================================================================================
+
+💾 Post salvo em: posts/post_computacao_quantica_20260212_143022.txt
+
+✅ Processo concluído com sucesso!
+```
+
+## 📁 Estrutura do projeto
+
+```
+linkedin-news-bot/
+├── main.py              # Script principal do bot
+├── requirements.txt     # Dependências Python
+├── .env.example        # Template de variáveis de ambiente
+├── .env                # Suas API keys (NÃO versionar!)
+├── .gitignore          # Arquivos ignorados pelo Git
+├── README.md           # Esta documentação
+└── posts/              # Posts gerados são salvos aqui
+    ├── .gitkeep
+    └── post_topico_20260212_143022.txt
+```
+
+## 🛠️ Requisitos técnicos
+
+- **Python**: 3.9 ou superior
+- **Bibliotecas**:
+  - `requests`: Para chamadas HTTP à NewsAPI
+  - `anthropic`: SDK oficial da Anthropic para Claude AI
+  - `python-dotenv`: Gerenciamento de variáveis de ambiente
+
+## 🔍 Funcionalidades principais
+
+### `buscar_noticias(topico, dias=7)`
+- Busca notícias recentes na NewsAPI
+- Filtra por relevância
+- Prioriza notícias em português
+- Retorna top 5 notícias
+
+### `gerar_post_linkedin(topico, noticias)`
+- Formata contexto com as notícias
+- Cria prompt otimizado para Claude
+- Gera post de 200-300 palavras
+- Retorna texto formatado para LinkedIn
+
+### `salvar_post(topico, post_texto)`
+- Cria pasta `posts/` se não existir
+- Gera nome de arquivo com timestamp
+- Salva post com metadados (tópico, data)
+
+### `gerar_post(topico)`
+- Função principal que orquestra todo o processo
+- Combina busca + geração + exibição + salvamento
+
+## ⚡ Tratamento de erros
+
+O bot possui tratamento de erros para:
+- API keys não configuradas
+- Falhas na conexão com APIs
+- Nenhuma notícia encontrada
+- Erros ao gerar ou salvar posts
+
+## 🚧 Limitações do MVP
+
+Este é um MVP (Produto Mínimo Viável). Funcionalidades NÃO incluídas:
+
+- ❌ Upload automático para LinkedIn
+- ❌ Interface gráfica (GUI)
+- ❌ Banco de dados para histórico
+- ❌ Agendamento automático de posts
+- ❌ Upload para Google Drive
+
+Estas funcionalidades podem ser adicionadas em versões futuras.
+
+## 📄 Licença
+
+Projeto de código aberto para fins educacionais.
+
+## 🤝 Contribuindo
+
+Este é um projeto MVP. Sugestões e melhorias são bem-vindas!
+
+## 📞 Suporte
+
+Em caso de problemas:
+1. Verifique se as API keys estão corretas no arquivo `.env`
+2. Confirme que instalou todas as dependências
+3. Verifique sua conexão com a internet
+4. Consulte a documentação das APIs:
+   - [NewsAPI Docs](https://newsapi.org/docs)
+   - [Anthropic API Docs](https://docs.anthropic.com)
+
+---
+
+**Desenvolvido com Python e Claude AI** 🤖✨
